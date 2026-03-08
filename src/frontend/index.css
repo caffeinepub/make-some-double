@@ -1,0 +1,234 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* JetBrains Mono — monospace for serials/technical data */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/JetBrainsMono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Cabinet Grotesk — display/UI labels */
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/assets/fonts/CabinetGrotesk.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Geist Mono — secondary mono */
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/assets/fonts/GeistMono.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.25rem;
+
+    /* Dark navy palette — OKLCH raw L C H values */
+    --background: 0.10 0.030 248;
+    --foreground: 0.94 0.01 90;
+    --card: 0.14 0.028 247;
+    --card-foreground: 0.94 0.01 90;
+    --popover: 0.16 0.026 246;
+    --popover-foreground: 0.94 0.01 90;
+
+    /* Amber/orange primary — industrial action color */
+    --primary: 0.72 0.18 55;
+    --primary-foreground: 0.12 0.005 240;
+
+    --secondary: 0.20 0.028 247;
+    --secondary-foreground: 0.85 0.01 90;
+    --muted: 0.18 0.026 247;
+    --muted-foreground: 0.55 0.012 248;
+    --accent: 0.22 0.028 247;
+    --accent-foreground: 0.94 0.01 90;
+
+    /* Destructive — vivid red */
+    --destructive: 0.62 0.22 25;
+    --destructive-foreground: 0.97 0.01 90;
+
+    /* Success — vivid green */
+    --success: 0.65 0.20 142;
+    --success-foreground: 0.12 0.005 142;
+
+    /* Warning — amber */
+    --warning: 0.75 0.18 75;
+    --warning-foreground: 0.12 0.005 75;
+
+    --border: 0.26 0.032 246;
+    --input: 0.18 0.028 247;
+    --ring: 0.72 0.18 55;
+
+    /* Status colors */
+    --status-connected: 0.65 0.20 142;
+    --status-disconnected: 0.55 0.015 240;
+    --status-error: 0.62 0.22 25;
+    --status-warning: 0.75 0.18 75;
+
+    /* Chart colors */
+    --chart-1: 0.72 0.18 55;
+    --chart-2: 0.65 0.20 142;
+    --chart-3: 0.62 0.22 25;
+    --chart-4: 0.60 0.18 220;
+    --chart-5: 0.70 0.15 300;
+
+    --sidebar: 0.11 0.030 250;
+    --sidebar-foreground: 0.94 0.01 90;
+    --sidebar-primary: 0.72 0.18 55;
+    --sidebar-primary-foreground: 0.12 0.005 240;
+    --sidebar-accent: 0.22 0.028 247;
+    --sidebar-accent-foreground: 0.94 0.01 90;
+    --sidebar-border: 0.26 0.032 246;
+    --sidebar-ring: 0.72 0.18 55;
+  }
+
+  /* Force dark mode — this app is dark-only */
+  html {
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Cabinet Grotesk", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent text selection during drag on tablet */
+    -webkit-user-select: none;
+    user-select: none;
+    /* Full height for tablet layout */
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* Allow text selection in inputs */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Larger touch targets */
+  button, [role="button"], [role="tab"] {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Monospace for technical data */
+  .font-mono {
+    font-family: "JetBrains Mono", "Geist Mono", monospace;
+  }
+}
+
+@layer utilities {
+  .text-success {
+    color: oklch(var(--success));
+  }
+  .bg-success {
+    background-color: oklch(var(--success));
+  }
+  .text-success-foreground {
+    color: oklch(var(--success-foreground));
+  }
+  .border-success {
+    border-color: oklch(var(--success));
+  }
+  .text-warning {
+    color: oklch(var(--warning));
+  }
+  .bg-warning {
+    background-color: oklch(var(--warning));
+  }
+  .border-warning {
+    border-color: oklch(var(--warning));
+  }
+  .bg-status-connected {
+    background-color: oklch(var(--status-connected));
+  }
+  .text-status-connected {
+    color: oklch(var(--status-connected));
+  }
+  .bg-status-error {
+    background-color: oklch(var(--status-error));
+  }
+  .text-status-error {
+    color: oklch(var(--status-error));
+  }
+
+  /* Scanner input glow effect */
+  .scan-input-glow {
+    box-shadow:
+      0 0 0 2px oklch(var(--primary) / 0.4),
+      0 0 20px oklch(var(--primary) / 0.15);
+  }
+
+  .scan-input-error-glow {
+    box-shadow:
+      0 0 0 2px oklch(var(--destructive) / 0.5),
+      0 0 20px oklch(var(--destructive) / 0.15);
+  }
+
+  .scan-input-success-glow {
+    box-shadow:
+      0 0 0 2px oklch(var(--success) / 0.5),
+      0 0 20px oklch(var(--success) / 0.15);
+  }
+}
+
+/* Shake animation for wrong password */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+  20%, 40%, 60%, 80% { transform: translateX(6px); }
+}
+
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Pulse glow for step indicator active */
+@keyframes step-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.step-active-pulse {
+  animation: step-pulse 2s ease-in-out infinite;
+}
+
+/* Fade-in animation for banners and panels */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+/* Scrollbar styling for dark UI */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: oklch(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(var(--border));
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(var(--muted-foreground));
+}
