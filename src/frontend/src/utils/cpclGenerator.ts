@@ -32,25 +32,16 @@ export function generateCPCL(
   b1x = Math.max(0, Math.min(b1x, widthDots - bWidth * 4));
   b2x = Math.max(0, Math.min(b2x, widthDots - bWidth * 4));
 
-  // Serial text positions
+  // Serial text positions (below barcode)
   const s1textY = b1y + bHeight + mmToDots(settings.barcode1TextGap);
   const s2textY = b2y + bHeight + mmToDots(settings.barcode2TextGap);
 
-  const lines: string[] = [
-    `! 0 200 200 ${heightDots} 1`,
-    `PAGE-WIDTH ${widthDots}`,
-    // Title
-    `TEXT ${titleFontDots} 0 ${hOffset} ${vOffset} ${title}`,
-    // Barcode 1 — inline format: data is the last argument on the same line
-    `BARCODE ${settings.barcodeType} ${bWidth} 1.5 ${bHeight} ${b1x} ${b1y} ${serial1}`,
-    // Serial 1 text below barcode
-    `TEXT ${serialFontDots} 0 ${b1x} ${s1textY} ${serial1}`,
-    // Barcode 2 — inline format: data is the last argument on the same line
-    `BARCODE ${settings.barcodeType} ${bWidth} 1.5 ${bHeight} ${b2x} ${b2y} ${serial2}`,
-    // Serial 2 text below barcode
-    `TEXT ${serialFontDots} 0 ${b2x} ${s2textY} ${serial2}`,
-    "PRINT",
-  ];
+  // Use ratio 2 (integer) for maximum printer compatibility
+  // Build CPCL using exact same structure as working test print
+  const cpcl = `! 0 200 200 ${heightDots} 1\r\nPAGE-WIDTH ${widthDots}\r\nTEXT ${titleFontDots} 0 ${hOffset} ${vOffset} ${title}\r\nBARCODE ${settings.barcodeType} ${bWidth} 2 ${bHeight} ${b1x} ${b1y} ${serial1}\r\nTEXT ${serialFontDots} 0 ${b1x} ${s1textY} ${serial1}\r\nBARCODE ${settings.barcodeType} ${bWidth} 2 ${bHeight} ${b2x} ${b2y} ${serial2}\r\nTEXT ${serialFontDots} 0 ${b2x} ${s2textY} ${serial2}\r\nPRINT`;
 
-  return lines.join("\r\n");
+  // Debug: log generated CPCL to console so it can be inspected
+  console.log(`[CPCL Generated]\n${cpcl.replace(/\r\n/g, "\n")}`);
+
+  return cpcl;
 }

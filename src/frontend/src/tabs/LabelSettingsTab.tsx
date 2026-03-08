@@ -25,8 +25,10 @@ import {
   Download,
   Play,
   Plus,
+  Printer,
   RotateCcw,
   Save,
+  TestTube,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -36,6 +38,7 @@ import {
   type BarcodeType,
   useLabelSettingsStore,
 } from "../stores/labelSettingsStore";
+import { usePrinterStore } from "../stores/printerStore";
 import { SOUND_OPTIONS, playSound } from "../utils/soundSystem";
 
 const BARCODE_TYPES: BarcodeType[] = [
@@ -91,7 +94,33 @@ function NumberInput({
 export function LabelSettingsTab() {
   const settings = useLabelSettingsStore();
   const [savedIndicator, setSavedIndicator] = useState(false);
+  const [barcodeTestStatus, setBarcodeTestStatus] = useState<
+    "idle" | "printing" | "ok" | "error"
+  >("idle");
   const importRef = useRef<HTMLInputElement>(null);
+  const { isConnected, testPrintWithSerials } = usePrinterStore();
+
+  const handleBarcodeTestPrint = async () => {
+    if (!isConnected) {
+      setBarcodeTestStatus("error");
+      setTimeout(() => setBarcodeTestStatus("idle"), 2000);
+      return;
+    }
+    setBarcodeTestStatus("printing");
+    try {
+      // Use dummy serials matching first configured prefix, or generic sample
+      const firstPrefix = settings.prefixes[0];
+      const serial1 = firstPrefix ? `${firstPrefix.prefix}TEST001` : "TEST001";
+      const serial2 = firstPrefix ? `${firstPrefix.prefix}TEST002` : "TEST002";
+      const title = firstPrefix ? firstPrefix.title : "TEST LABEL";
+      await testPrintWithSerials(serial1, serial2, title, settings);
+      setBarcodeTestStatus("ok");
+      setTimeout(() => setBarcodeTestStatus("idle"), 2000);
+    } catch {
+      setBarcodeTestStatus("error");
+      setTimeout(() => setBarcodeTestStatus("idle"), 2000);
+    }
+  };
 
   const handleExport = () => {
     const json = settings.exportSettings();
@@ -390,6 +419,51 @@ export function LabelSettingsTab() {
             />
           </div>
           <LabelPreview />
+
+          {/* Test Print button for Barcodes sub-tab */}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleBarcodeTestPrint}
+              disabled={barcodeTestStatus === "printing"}
+              data-ocid="settings.barcode_test_print.button"
+              className={`flex items-center justify-center gap-2 w-full py-4 rounded font-bold uppercase tracking-wider text-sm active:scale-[0.98] transition-all touch-manipulation disabled:opacity-40 ${
+                barcodeTestStatus === "ok"
+                  ? "bg-success/20 border border-success/40 text-status-connected"
+                  : barcodeTestStatus === "error"
+                    ? "bg-destructive/15 border border-destructive/40 text-destructive"
+                    : "border border-primary/40 text-primary hover:bg-primary/10"
+              }`}
+              style={{ minHeight: 52 }}
+            >
+              {barcodeTestStatus === "printing" ? (
+                <>
+                  <Printer className="w-4 h-4 animate-pulse" />
+                  Printing...
+                </>
+              ) : barcodeTestStatus === "ok" ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Printed!
+                </>
+              ) : barcodeTestStatus === "error" ? (
+                <>
+                  <Printer className="w-4 h-4" />
+                  {isConnected ? "Print Failed" : "Printer Not Connected"}
+                </>
+              ) : (
+                <>
+                  <TestTube className="w-4 h-4" />
+                  Test Print (with serials & barcode)
+                </>
+              )}
+            </button>
+            {!isConnected && (
+              <p className="text-xs text-muted-foreground/60 text-center mt-2">
+                Connect printer in Devices tab first
+              </p>
+            )}
+          </div>
         </TabsContent>
 
         {/* Prefixes sub-tab */}

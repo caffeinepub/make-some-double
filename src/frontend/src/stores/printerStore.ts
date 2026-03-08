@@ -37,6 +37,12 @@ interface PrinterState {
   reconnect(): Promise<void>;
   print(cpclString: string): Promise<void>;
   testPrint(): Promise<void>;
+  testPrintWithSerials(
+    serial1: string,
+    serial2: string,
+    title: string,
+    settings: import("../stores/labelSettingsStore").LabelSettings,
+  ): Promise<void>;
 }
 
 const getLastDeviceId = (): string | null => {
@@ -150,13 +156,19 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
   },
 
   testPrint: async () => {
-    const testCPCL = `! 0 200 200 336 1
-PAGE-WIDTH 456
-TEXT 24 0 16 16 MAKE SOME DOUBLE!!
-TEXT 20 0 16 60 TEST PRINT - OK
-BARCODE CODE128 2 1.5 79 16 100 TEST123456
-TEXT 16 0 16 195 TEST123456
-PRINT`;
+    const testCPCL =
+      "! 0 200 200 336 1\r\nPAGE-WIDTH 456\r\nTEXT 24 0 16 16 MAKE SOME DOUBLE!!\r\nTEXT 20 0 16 60 TEST PRINT - OK\r\nBARCODE CODE128 2 2 79 16 100 TEST123456\r\nTEXT 16 0 16 195 TEST123456\r\nPRINT";
     await get().print(testCPCL);
+  },
+
+  testPrintWithSerials: async (
+    serial1: string,
+    serial2: string,
+    title: string,
+    settings: import("../stores/labelSettingsStore").LabelSettings,
+  ) => {
+    const { generateCPCL } = await import("../utils/cpclGenerator");
+    const cpcl = generateCPCL(settings, serial1, serial2, title);
+    await get().print(cpcl);
   },
 }));
