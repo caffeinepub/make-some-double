@@ -143,7 +143,9 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
     const { device } = get();
     if (!device) throw new Error("No printer connected");
     const encoder = new TextEncoder();
-    const data = encoder.encode(`${cpclString}\n`);
+    // Ensure CPCL lines are terminated with \r\n as required by most CPCL printers
+    const normalized = cpclString.replace(/\r?\n/g, "\r\n");
+    const data = encoder.encode(`${normalized}\r\n`);
     await device.transferOut(1, data);
   },
 

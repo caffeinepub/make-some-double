@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDiagnosticsStore } from "../stores/diagnosticsStore";
 import { useLabelSettingsStore } from "../stores/labelSettingsStore";
+import type { PrefixMapping } from "../stores/labelSettingsStore";
 import { usePrinterStore } from "../stores/printerStore";
 import { submitJobBestEffort } from "../utils/backendClient";
 import { generateCPCL } from "../utils/cpclGenerator";
@@ -24,9 +25,20 @@ interface ScanData {
   title: string;
 }
 
-function extractPrefix(serial: string): string {
-  const match = serial.match(/^([A-Za-z]+)/);
-  return match ? match[1].toUpperCase() : "";
+function findMatchingPrefix(
+  serial: string,
+  prefixes: PrefixMapping[],
+): PrefixMapping | null {
+  // Sort by prefix length descending so longer prefixes match first
+  const sorted = [...prefixes].sort(
+    (a, b) => b.prefix.length - a.prefix.length,
+  );
+  for (const p of sorted) {
+    if (serial.toUpperCase().startsWith(p.prefix.toUpperCase())) {
+      return p;
+    }
+  }
+  return null;
 }
 
 function getTodayString(): string {
@@ -41,7 +53,6 @@ export function ScanPrintTab() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
-  const [showNextButton, setShowNextButton] = useState(false);
   const [printTriggered, setPrintTriggered] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +90,7 @@ export function ScanPrintTab() {
   }, []);
 
   const focusInput = useCallback(() => {
-    setTimeout(() => inputRef.current?.focus(), 50);
+    setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50);
   }, []);
 
   useEffect(() => {
@@ -108,7 +119,6 @@ export function ScanPrintTab() {
     setScan2(null);
     setErrorMsg(null);
     setSuccessMsg(null);
-    setShowNextButton(false);
     setPrintTriggered(false);
     focusInput();
   }, [focusInput]);
@@ -151,7 +161,10 @@ export function ScanPrintTab() {
         const s2num = BigInt(s2.serial.replace(/[^0-9]/g, "") || 0);
         submitJobBestEffort(s1.prefix, s1num, s2num);
 
-        setShowNextButton(true);
+        // Auto-reset to step 1 after 1 second
+        setTimeout(() => {
+          resetWorkflow();
+        }, 1000);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Print failed";
         showError(msg, false);
@@ -166,7 +179,7 @@ export function ScanPrintTab() {
         setIsPrinting(false);
       }
     },
-    [isConnected, settings, diag, showError],
+    [isConnected, settings, diag, showError, resetWorkflow],
   );
 
   // Auto-print when scan2 is set
@@ -183,32 +196,27 @@ export function ScanPrintTab() {
     if (!serial) return;
 
     if (step === 1) {
-      const prefix = extractPrefix(serial);
-      if (!prefix) {
-        showError("Wrong barcode scanned");
-        return;
-      }
-      const mapping = settings.prefixes.find((p) => p.prefix === prefix);
+      const mapping = findMatchingPrefix(serial, settings.prefixes);
       if (!mapping) {
         showError("Wrong barcode scanned");
         return;
       }
       const newScan: ScanData = {
         serial,
-        prefix,
+        prefix: mapping.prefix,
         labelType: mapping.labelType,
         title: mapping.title,
       };
       setScan1(newScan);
       setErrorMsg(null);
       playSound(settings.successSoundId, settings.volume);
-      diag.incrementScans(prefix, mapping.labelType);
+      diag.incrementScans(mapping.prefix, mapping.labelType);
       diag.addLog("info", `Scan 1: ${serial} (${mapping.labelType})`);
       setStep(2);
       focusInput();
     } else if (step === 2 && scan1) {
-      const prefix = extractPrefix(serial);
-      if (prefix !== scan1.prefix) {
+      const mapping = findMatchingPrefix(serial, settings.prefixes);
+      if (!mapping || mapping.prefix !== scan1.prefix) {
         showError("Wrong barcode scanned");
         return;
       }
@@ -218,14 +226,14 @@ export function ScanPrintTab() {
       }
       const newScan: ScanData = {
         serial,
-        prefix,
+        prefix: mapping.prefix,
         labelType: scan1.labelType,
         title: scan1.title,
       };
       setScan2(newScan);
       setErrorMsg(null);
       playSound(settings.successSoundId, settings.volume);
-      diag.incrementScans(prefix, scan1.labelType);
+      diag.incrementScans(mapping.prefix, scan1.labelType);
       diag.addLog("info", `Scan 2: ${serial} — auto-printing...`);
       setStep(3);
     }
@@ -361,43 +369,65 @@ export function ScanPrintTab() {
       {step !== 3 && (
         <div className="flex flex-col gap-3">
           <label
-            htmlFor="scan-input"
+            htmlFor="scan-input-hidden"
             className="text-xs uppercase tracking-widest text-muted-foreground"
           >
             {step === 1
               ? "SCAN FIRST SERIAL"
               : `SCAN SECOND SERIAL (${scan1?.prefix ?? ""}...)`}
           </label>
+
+          {/* Hidden input captures scanner keystrokes without showing keyboard */}
           <input
-            id="scan-input"
+            id="scan-input-hidden"
             ref={inputRef}
             type="text"
             inputMode="none"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={
-              step === 1 ? "Awaiting scan..." : "Scan second serial..."
-            }
             autoComplete="off"
             autoCorrect="off"
-            autoCapitalize="characters"
             spellCheck={false}
+            tabIndex={-1}
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              opacity: 0,
+              pointerEvents: "none",
+              width: 1,
+              height: 1,
+              top: -9999,
+              left: -9999,
+            }}
+          />
+
+          {/* Visual display div — tapping this refocuses the hidden input */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: scanner-only input, keyboard interaction handled by hidden input */}
+          <div
             data-ocid="scan.input"
+            onClick={() => inputRef.current?.focus({ preventScroll: true })}
             className={`
-              w-full text-2xl font-mono py-5 px-5 rounded border outline-none
-              bg-input transition-all duration-150
-              placeholder:text-muted-foreground/30
+              w-full text-2xl font-mono py-5 px-5 rounded border
+              bg-input transition-all duration-150 cursor-default select-none
               ${
                 inputState === "error"
                   ? "border-destructive scan-input-error-glow"
                   : inputState === "success"
                     ? "border-success scan-input-success-glow"
-                    : "border-border focus:border-primary scan-input-glow"
+                    : "border-border scan-input-glow"
               }
             `}
             style={{ minHeight: 72 }}
-          />
+          >
+            {inputValue ? (
+              <span className="text-foreground">{inputValue}</span>
+            ) : (
+              <span className="text-muted-foreground/30">
+                {step === 1 ? "Awaiting scan..." : "Scan second serial..."}
+              </span>
+            )}
+          </div>
 
           {/* Error banner */}
           {errorMsg && (
@@ -526,22 +556,8 @@ export function ScanPrintTab() {
             </div>
           )}
 
-          {/* Scan next label button on success */}
-          {showNextButton && (
-            <button
-              type="button"
-              onClick={resetWorkflow}
-              data-ocid="scan.next_button"
-              className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded font-black uppercase tracking-widest text-base bg-success text-success-foreground active:scale-[0.98] transition-all touch-manipulation border border-success/30"
-              style={{ minHeight: 64 }}
-            >
-              <RotateCcw className="w-5 h-5" />
-              SCAN NEXT LABEL
-            </button>
-          )}
-
           {/* Retry + reset buttons on print failure */}
-          {errorMsg && !isPrinting && !showNextButton && scan2 && (
+          {errorMsg && !isPrinting && scan2 && (
             <div className="flex gap-3">
               <button
                 type="button"
@@ -569,7 +585,7 @@ export function ScanPrintTab() {
       )}
 
       {/* Reset shortcut at bottom */}
-      {step !== 1 && !showNextButton && step !== 3 && (
+      {step !== 1 && step !== 3 && (
         <div className="mt-auto pt-2">
           <button
             type="button"

@@ -41,16 +41,16 @@ export function generateCPCL(
     `PAGE-WIDTH ${widthDots}`,
     // Title
     `TEXT ${titleFontDots} 0 ${hOffset} ${vOffset} ${title}`,
-    // Barcode 1
+    // Barcode 1 — inline format: data is the last argument on the same line
     `BARCODE ${settings.barcodeType} ${bWidth} 1.5 ${bHeight} ${b1x} ${b1y} ${serial1}`,
-    // Serial 1 text
+    // Serial 1 text below barcode
     `TEXT ${serialFontDots} 0 ${b1x} ${s1textY} ${serial1}`,
-    // Barcode 2
+    // Barcode 2 — inline format: data is the last argument on the same line
     `BARCODE ${settings.barcodeType} ${bWidth} 1.5 ${bHeight} ${b2x} ${b2y} ${serial2}`,
-    // Serial 2 text
+    // Serial 2 text below barcode
     `TEXT ${serialFontDots} 0 ${b2x} ${s2textY} ${serial2}`,
     "PRINT",
   ];
 
-  return lines.join("\n");
+  return lines.join("\r\n");
 }
