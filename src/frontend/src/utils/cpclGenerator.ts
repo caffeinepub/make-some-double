@@ -36,9 +36,27 @@ export function generateCPCL(
   const s1textY = b1y + bHeight + mmToDots(settings.barcode1TextGap);
   const s2textY = b2y + bHeight + mmToDots(settings.barcode2TextGap);
 
-  // Use ratio 2 (integer) for maximum printer compatibility
-  // Build CPCL using exact same structure as working test print
-  const cpcl = `! 0 200 200 ${heightDots} 1\r\nPAGE-WIDTH ${widthDots}\r\nTEXT ${titleFontDots} 0 ${hOffset} ${vOffset} ${title}\r\nBARCODE ${settings.barcodeType} ${bWidth} 2 ${bHeight} ${b1x} ${b1y} ${serial1}\r\nTEXT ${serialFontDots} 0 ${b1x} ${s1textY} ${serial1}\r\nBARCODE ${settings.barcodeType} ${bWidth} 2 ${bHeight} ${b2x} ${b2y} ${serial2}\r\nTEXT ${serialFontDots} 0 ${b2x} ${s2textY} ${serial2}\r\nPRINT`;
+  // CPCL BARCODE command: data must be on a SEPARATE line immediately after the command
+  // Format: BARCODE <type> <width> <ratio> <height> <x> <y>\r\n<data>
+  const lines: string[] = [];
+  lines.push(`! 0 200 200 ${heightDots} 1`);
+  lines.push(`PAGE-WIDTH ${widthDots}`);
+  lines.push(`TEXT ${titleFontDots} 0 ${hOffset} ${vOffset} ${title}`);
+  // Barcode 1 — data on next line per CPCL spec
+  lines.push(
+    `BARCODE ${settings.barcodeType} ${bWidth} 2 ${bHeight} ${b1x} ${b1y}`,
+  );
+  lines.push(serial1);
+  lines.push(`TEXT ${serialFontDots} 0 ${b1x} ${s1textY} ${serial1}`);
+  // Barcode 2 — data on next line per CPCL spec
+  lines.push(
+    `BARCODE ${settings.barcodeType} ${bWidth} 2 ${bHeight} ${b2x} ${b2y}`,
+  );
+  lines.push(serial2);
+  lines.push(`TEXT ${serialFontDots} 0 ${b2x} ${s2textY} ${serial2}`);
+  lines.push("PRINT");
+
+  const cpcl = lines.join("\r\n");
 
   // Debug: log generated CPCL to console so it can be inspected
   console.log(`[CPCL Generated]\n${cpcl.replace(/\r\n/g, "\n")}`);

@@ -156,9 +156,18 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
   },
 
   testPrint: async () => {
-    const testCPCL =
-      "! 0 200 200 336 1\r\nPAGE-WIDTH 456\r\nTEXT 24 0 16 16 MAKE SOME DOUBLE!!\r\nTEXT 20 0 16 60 TEST PRINT - OK\r\nBARCODE CODE128 2 2 79 16 100 TEST123456\r\nTEXT 16 0 16 195 TEST123456\r\nPRINT";
-    await get().print(testCPCL);
+    // CPCL BARCODE: data must be on a separate line immediately after the command
+    const testLines = [
+      "! 0 200 200 336 1",
+      "PAGE-WIDTH 456",
+      "TEXT 24 0 16 16 MAKE SOME DOUBLE!!",
+      "TEXT 20 0 16 60 TEST PRINT - OK",
+      "BARCODE CODE128 2 2 79 16 100",
+      "TEST123456",
+      "TEXT 16 0 16 195 TEST123456",
+      "PRINT",
+    ];
+    await get().print(testLines.join("\r\n"));
   },
 
   testPrintWithSerials: async (
