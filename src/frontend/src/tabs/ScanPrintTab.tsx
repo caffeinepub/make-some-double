@@ -216,8 +216,12 @@ export function ScanPrintTab() {
       focusInput();
     } else if (step === 2 && scan1) {
       const mapping = findMatchingPrefix(serial, settings.prefixes);
-      if (!mapping || mapping.prefix !== scan1.prefix) {
+      if (!mapping) {
         showError("Wrong barcode scanned");
+        return;
+      }
+      if (mapping.prefix !== scan1.prefix) {
+        showError(`Wrong product — serial must start with ${scan1.prefix}`);
         return;
       }
       if (serial === scan1.serial) {
@@ -374,7 +378,7 @@ export function ScanPrintTab() {
           >
             {step === 1
               ? "SCAN FIRST SERIAL"
-              : `SCAN SECOND SERIAL (${scan1?.prefix ?? ""}...)`}
+              : `SCAN SECOND SERIAL — MUST START WITH ${scan1?.prefix ?? ""}`}
           </label>
 
           {/* Hidden input captures scanner keystrokes without showing keyboard */}
